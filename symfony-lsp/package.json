@@ -1,0 +1,31 @@
+{
+  "name": "symfony-lsp-zed",
+  "version": "0.1.0",
+  "description": "Symfony framework LSP for Zed",
+  "main": "dist/server.bundle.js",
+  "bin": {
+    "symfony-lsp": "dist/server.bundle.js"
+  },
+  "files": [
+    "dist/server.bundle.js",
+    "dist/server.bundle.js.map"
+  ],
+  "scripts": {
+    "build": "tsc && npm run bundle",
+    "bundle": "esbuild dist/server.js --bundle --platform=node --target=node18 --outfile=dist/server.bundle.js --sourcemap",
+    "watch": "tsc -w",
+    "start": "node dist/server.bundle.js --stdio"
+  },
+  "dependencies": {
+    "fast-glob": "^3.3.3",
+    "php-parser": "^3.2.2",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "esbuild": "^0.25.5",
+    "typescript": "^5.8.3"
+  }
+}

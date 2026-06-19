@@ -1,0 +1,14 @@
+{
+  "name": "zed-symfony",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Symfony framework navigation extension for Zed",
+  "scripts": {
+    "install:lsp": "npm install --prefix symfony-lsp",
+    "build": "npm run build --prefix symfony-lsp",
+    "build:lsp": "npm run build --prefix symfony-lsp",
+    "setup-zed": "bash scripts/setup-zed.sh",
+    "test": "node symfony-lsp/scripts/smoke-test.mjs",
+    "postinstall": "npm run install:lsp"
+  }
+}

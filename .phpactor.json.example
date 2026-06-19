@@ -1,0 +1,11 @@
+{
+  "$schema": "/phpactor.schema.json",
+  "symfony.enabled": true,
+  "symfony.xml_path": "var/cache/dev/App_KernelDevDebugContainer.xml",
+  "indexer.exclude_patterns": [
+    "/vendor/**/Tests/**/*",
+    "/vendor/**/tests/**/*",
+    "/var/cache/**/*",
+    "/vendor/composer/**/*"
+  ]
+}

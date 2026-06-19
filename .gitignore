@@ -1,0 +1,6 @@
+/target/
+/node_modules/
+/symfony-lsp/node_modules/
+.idea/
+*.wasm
+.DS_Store
