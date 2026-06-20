@@ -5,10 +5,10 @@
 2. Add this repository as a git submodule:
 
 ```bash
-git submodule add https://github.com/YOUR_ORG/zed-symfony extensions/symfony
+git submodule add https://github.com/YOUR_ORG/zed-symfony extensions/symfony-fire1
 ```
 
-3. Register the extension in `extensions/symfony/extension.toml` (already present in this repo).
+3. Register the extension in `extensions/symfony-fire1/extension.toml` (already present in this repo).
 
 4. Ensure the built LSP is included:
 
@@ -20,7 +20,7 @@ git add symfony-lsp/dist
 5. Build the WASM extension locally and verify with **Install Dev Extension** before submitting the PR.
 
 6. PR checklist:
-   - [ ] `extension.toml` has unique `id = "symfony"`
+   - [ ] `extension.toml` has unique `id = "symfony-fire1"`
    - [ ] README documents required Zed settings
    - [ ] License file included (MIT)
    - [ ] No duplicate functionality with existing PHP extension (this complements Phpactor)

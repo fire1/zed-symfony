@@ -1,4 +1,4 @@
-id = "symfony"
+id = "symfony-fire1"
 name = "Symfony"
 description = "Symfony framework navigation for PHP: Twig templates, routes, services, and Doctrine repositories."
 version = "0.1.0"

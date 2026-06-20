@@ -13,6 +13,12 @@ import { provideDocumentLinks } from "./providers/documentLinks.js";
 import { provideCompletions } from "./providers/completion.js";
 import { provideHover } from "./providers/hover.js";
 import { provideDefinition } from "./providers/definition.js";
+import {
+  handleExecuteCommand,
+  MOVE_CLASS_COMMAND,
+  provideCodeActions,
+  RENAME_CLASS_COMMAND,
+} from "./providers/codeActions.js";
 import { fileUriToPath, findSymfonyProjectRoot, findSymfonyProjectRootsUnder } from "./utils/paths.js";
 import {
   ensurePhpactorConfig,
@@ -71,6 +77,12 @@ connection.onInitialize((params: InitializeParams) => {
       },
       hoverProvider: true,
       definitionProvider: true,
+      codeActionProvider: {
+        resolveProvider: false,
+      },
+      executeCommandProvider: {
+        commands: [RENAME_CLASS_COMMAND, MOVE_CLASS_COMMAND],
+      },
     },
   };
 });
@@ -169,6 +181,21 @@ connection.onDefinition(async (params) => {
     params.position.line,
     params.position.character
   );
+});
+
+connection.onCodeAction(async (params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return [];
+  }
+
+  const filePath = fileUriToPath(document.uri);
+  const projectRoot = findSymfonyProjectRoot(filePath);
+  return provideCodeActions(document, params.range, projectRoot);
+});
+
+connection.onExecuteCommand(async (params) => {
+  await handleExecuteCommand(connection, params);
 });
 
 documents.listen(connection);

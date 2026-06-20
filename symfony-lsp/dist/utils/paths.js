@@ -33,11 +33,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.resolveClassFile = void 0;
 exports.fileUriToPath = fileUriToPath;
 exports.pathToFileUri = pathToFileUri;
 exports.findSymfonyProjectRoot = findSymfonyProjectRoot;
 exports.findSymfonyProjectRootsUnder = findSymfonyProjectRootsUnder;
-exports.resolveClassFile = resolveClassFile;
 exports.expandSymfonyPath = expandSymfonyPath;
 exports.parseTwigTemplateName = parseTwigTemplateName;
 exports.isTwigTemplateReference = isTwigTemplateReference;
@@ -131,47 +131,8 @@ function findSymfonyProjectRootsUnder(startDir, maxDepth = 4) {
     walk(resolvedStart, 1);
     return [...roots];
 }
-function resolveClassFile(projectRoot, className) {
-    const relative = className.replace(/^\\/, "").replace(/\\/g, "/") + ".php";
-    const candidates = [
-        path.join(projectRoot, "src", relative.replace(/^App\//, "App/")),
-        path.join(projectRoot, "src", relative),
-        path.join(projectRoot, relative),
-    ];
-    for (const candidate of candidates) {
-        if (fs.existsSync(candidate)) {
-            return candidate;
-        }
-    }
-    const composerPath = path.join(projectRoot, "composer.json");
-    if (!fs.existsSync(composerPath)) {
-        return null;
-    }
-    try {
-        const composer = JSON.parse(fs.readFileSync(composerPath, "utf8"));
-        const psr4 = composer.autoload?.["psr-4"] ?? {};
-        const psr4Dev = composer.autoload?.["psr-4-dev"] ?? {};
-        const mappings = { ...psr4, ...psr4Dev };
-        for (const [prefix, dir] of Object.entries(mappings)) {
-            const nsPrefix = prefix.replace(/\\$/, "");
-            if (className.startsWith(nsPrefix)) {
-                const suffix = className
-                    .slice(nsPrefix.length)
-                    .replace(/^\\/, "")
-                    .replace(/\\/g, "/");
-                const baseDir = path.join(projectRoot, dir);
-                const filePath = path.join(baseDir, `${suffix}.php`);
-                if (fs.existsSync(filePath)) {
-                    return filePath;
-                }
-            }
-        }
-    }
-    catch {
-        // ignore
-    }
-    return null;
-}
+var composer_js_1 = require("./composer.js");
+Object.defineProperty(exports, "resolveClassFile", { enumerable: true, get: function () { return composer_js_1.resolveClassFile; } });
 function expandSymfonyPath(value, projectRoot) {
     const expanded = value
         .replace(/%kernel\.project_dir%/g, projectRoot)

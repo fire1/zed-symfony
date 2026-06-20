@@ -19,6 +19,18 @@ const {
   resetPhpactorConfigCache,
   mergeMissingConfig,
 } = await import(join(root, "dist/utils/phpactorConfig.js"));
+const {
+  fqcnFromFilePath,
+  filePathFromFqcn,
+  isDependencyPath,
+} = await import(join(root, "dist/utils/composer.js"));
+const { classAtCursor } = await import(join(root, "dist/refactor/classAtCursor.js"));
+const {
+  buildClassRefactorWorkspaceEdit,
+  renamedFilePath,
+  movedFilePath,
+} = await import(join(root, "dist/refactor/classRefactor.js"));
+const { provideCodeActions } = await import(join(root, "dist/providers/codeActions.js"));
 const { TextDocument } = await import("vscode-languageserver-textdocument");
 
 const controllerPath = join(fixtureRoot, "src/Controller/HomeController.php");
@@ -64,6 +76,11 @@ console.log(`  WorkTimelineEntity repo: ${workEntity?.repositoryClass ?? "MISSIN
 const workRepo = index.repositories.get("App\\WorkTackle\\Repository\\WorkTimelineRepository");
 console.log(`  WorkTimelineRepository methods: ${(workRepo?.methods ?? []).join(", ")}`);
 
+const workEntityPath = join(
+  fixtureRoot,
+  "src/WorkTackle/Entity/WorkTimelineEntity.php"
+);
+const workEntityContent = readFileSync(workEntityPath, "utf8");
 const workDoc = TextDocument.create(`file://${workControllerPath}`, "php", 1, workContent);
 const workLinks = await provideDocumentLinks(workDoc, index);
 const repoMethodLink = workLinks.find((l) =>
@@ -118,6 +135,119 @@ const repoCompletions = completions.filter((c) =>
 console.log(`\nRepository completions at getRepository chain: ${repoCompletions.length}`);
 
 const failed = [];
+
+console.log("\nRefactor tests...");
+const entityFqcn = fqcnFromFilePath(workEntityPath, fixtureRoot);
+const entityPathFromFqcn = filePathFromFqcn(entityFqcn, fixtureRoot);
+console.log(`  PSR-4 round-trip: ${entityFqcn} -> ${entityPathFromFqcn}`);
+if (entityFqcn !== "App\\WorkTackle\\Entity\\WorkTimelineEntity") {
+  failed.push("PSR-4 fqcnFromFilePath mismatch");
+}
+if (entityPathFromFqcn !== workEntityPath) {
+  failed.push("PSR-4 filePathFromFqcn mismatch");
+}
+
+const classLine = workEntityContent
+  .split("\n")
+  .findIndex((line) => line.includes("class WorkTimelineEntity"));
+const classMatch = workEntityContent.split("\n")[classLine].match(/class\s+(\w+)/);
+const classStart = workEntityContent.split("\n")[classLine].indexOf(classMatch[1]);
+const declaration = classAtCursor(
+  workEntityContent,
+  workEntityPath,
+  fixtureRoot,
+  classLine,
+  classStart + 2
+);
+console.log(`  classAtCursor eligible: ${declaration?.fqcn ?? "null"}`);
+if (!declaration) {
+  failed.push("classAtCursor should detect WorkTimelineEntity declaration");
+}
+
+const globalPhp = "<?php\nclass GlobalThing {}\n";
+if (
+  classAtCursor(globalPhp, join(fixtureRoot, "global.php"), fixtureRoot, 1, 7)
+) {
+  failed.push("classAtCursor should reject global class without namespace");
+}
+
+if (isDependencyPath(join(fixtureRoot, "vendor/foo/Bar.php"), fixtureRoot)) {
+  console.log("  vendor path rejected: ok");
+} else {
+  failed.push("isDependencyPath should reject vendor paths");
+}
+
+const entityDoc = TextDocument.create(
+  `file://${workEntityPath}`,
+  "php",
+  1,
+  workEntityContent
+);
+const codeActions = provideCodeActions(
+  entityDoc,
+  {
+    start: { line: classLine, character: classStart },
+    end: { line: classLine, character: classStart + classMatch[1].length },
+  },
+  fixtureRoot
+);
+console.log(`  code actions: ${codeActions.map((a) => a.title).join(", ")}`);
+if (codeActions.length !== 2) {
+  failed.push("expected rename and move code actions");
+}
+
+const renameEdit = buildClassRefactorWorkspaceEdit({
+  projectRoot: fixtureRoot,
+  oldFqcn: "App\\WorkTackle\\Entity\\WorkTimelineEntity",
+  newFqcn: "App\\WorkTackle\\Entity\\WorkTimelineRecord",
+  oldDeclPath: workEntityPath,
+  newDeclPath: renamedFilePath(workEntityPath, "WorkTimelineRecord"),
+});
+const renameFileOp = renameEdit.documentChanges?.find(
+  (change) => change.kind === "rename"
+);
+const controllerEdit = renameEdit.documentChanges?.find(
+  (change) =>
+    change.textDocument?.uri === `file://${workControllerPath}` &&
+    change.edits?.[0]?.newText?.includes("WorkTimelineRecord")
+);
+console.log(`  rename edit file op: ${Boolean(renameFileOp)}`);
+console.log(`  rename edit controller reference: ${Boolean(controllerEdit)}`);
+if (!renameFileOp) {
+  failed.push("rename edit missing RenameFile operation");
+}
+if (!controllerEdit) {
+  failed.push("rename edit missing controller reference rewrite");
+}
+
+const moveTargetPath = movedFilePath(
+  fixtureRoot,
+  "App\\WorkTackle\\Model\\WorkTimelineEntity"
+);
+const moveEdit = buildClassRefactorWorkspaceEdit({
+  projectRoot: fixtureRoot,
+  oldFqcn: "App\\WorkTackle\\Entity\\WorkTimelineEntity",
+  newFqcn: "App\\WorkTackle\\Model\\WorkTimelineEntity",
+  oldDeclPath: workEntityPath,
+  newDeclPath: moveTargetPath,
+});
+const moveFileOp = moveEdit.documentChanges?.find(
+  (change) => change.kind === "rename"
+);
+const movedDeclEdit = moveEdit.documentChanges?.find(
+  (change) =>
+    change.textDocument?.uri === `file://${workEntityPath}` &&
+    change.edits?.[0]?.newText?.includes("namespace App\\WorkTackle\\Model")
+);
+console.log(`  move edit file op: ${Boolean(moveFileOp)}`);
+console.log(`  move edit namespace rewrite: ${Boolean(movedDeclEdit)}`);
+if (!moveFileOp) {
+  failed.push("move edit missing RenameFile operation");
+}
+if (!movedDeclEdit) {
+  failed.push("move edit missing namespace rewrite");
+}
+
 if (!index.twig.namespaces.has("Statistics")) {
   failed.push("Statistics namespace not indexed");
 }

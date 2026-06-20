@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-WORK_DIR="${HOME}/.local/share/zed/extensions/work/symfony"
+WORK_DIR="${HOME}/.local/share/zed/extensions/work/symfony-fire1"
 BUNDLE="${ROOT}/symfony-lsp/dist/server.bundle.js"
 
 echo "Building Symfony LSP..."

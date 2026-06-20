@@ -8,6 +8,7 @@ const documentLinks_js_1 = require("./providers/documentLinks.js");
 const completion_js_1 = require("./providers/completion.js");
 const hover_js_1 = require("./providers/hover.js");
 const definition_js_1 = require("./providers/definition.js");
+const codeActions_js_1 = require("./providers/codeActions.js");
 const paths_js_1 = require("./utils/paths.js");
 const phpactorConfig_js_1 = require("./utils/phpactorConfig.js");
 const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
@@ -52,6 +53,12 @@ connection.onInitialize((params) => {
             },
             hoverProvider: true,
             definitionProvider: true,
+            codeActionProvider: {
+                resolveProvider: false,
+            },
+            executeCommandProvider: {
+                commands: [codeActions_js_1.RENAME_CLASS_COMMAND, codeActions_js_1.MOVE_CLASS_COMMAND],
+            },
         },
     };
 });
@@ -118,6 +125,18 @@ connection.onDefinition(async (params) => {
         return null;
     }
     return (0, definition_js_1.provideDefinition)(document, index, params.position.line, params.position.character);
+});
+connection.onCodeAction(async (params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+        return [];
+    }
+    const filePath = (0, paths_js_1.fileUriToPath)(document.uri);
+    const projectRoot = (0, paths_js_1.findSymfonyProjectRoot)(filePath);
+    return (0, codeActions_js_1.provideCodeActions)(document, params.range, projectRoot);
+});
+connection.onExecuteCommand(async (params) => {
+    await (0, codeActions_js_1.handleExecuteCommand)(connection, params);
 });
 documents.listen(connection);
 connection.listen();

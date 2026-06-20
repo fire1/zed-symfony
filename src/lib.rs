@@ -66,7 +66,7 @@ impl SymfonyExtension {
 
         Err(format!(
             "Symfony LSP not found in Zed extension work directory.\n\
-             Zed runs extensions from ~/.local/share/zed/extensions/work/symfony/ \
+             Zed runs extensions from ~/.local/share/zed/extensions/work/symfony-fire1/ \
              (not your source tree).\n\n\
              Fix: from the extension root run:\n\
                npm run setup-zed\n\
@@ -74,7 +74,7 @@ impl SymfonyExtension {
              Or manually:\n\
                npm run build\n\
                cp symfony-lsp/dist/server.bundle.js \
-               ~/.local/share/zed/extensions/work/symfony/symfony-lsp-server.js"
+               ~/.local/share/zed/extensions/work/symfony-fire1/symfony-lsp-server.js"
         ))
     }
 }

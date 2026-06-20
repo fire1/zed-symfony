@@ -108,55 +108,7 @@ export function findSymfonyProjectRootsUnder(
   return [...roots];
 }
 
-export function resolveClassFile(
-  projectRoot: string,
-  className: string
-): string | null {
-  const relative = className.replace(/^\\/, "").replace(/\\/g, "/") + ".php";
-
-  const candidates = [
-    path.join(projectRoot, "src", relative.replace(/^App\//, "App/")),
-    path.join(projectRoot, "src", relative),
-    path.join(projectRoot, relative),
-  ];
-
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  const composerPath = path.join(projectRoot, "composer.json");
-  if (!fs.existsSync(composerPath)) {
-    return null;
-  }
-
-  try {
-    const composer = JSON.parse(fs.readFileSync(composerPath, "utf8"));
-    const psr4 = composer.autoload?.["psr-4"] ?? {};
-    const psr4Dev = composer.autoload?.["psr-4-dev"] ?? {};
-    const mappings = { ...psr4, ...psr4Dev };
-
-    for (const [prefix, dir] of Object.entries(mappings)) {
-      const nsPrefix = prefix.replace(/\\$/, "");
-      if (className.startsWith(nsPrefix)) {
-        const suffix = className
-          .slice(nsPrefix.length)
-          .replace(/^\\/, "")
-          .replace(/\\/g, "/");
-        const baseDir = path.join(projectRoot, dir as string);
-        const filePath = path.join(baseDir, `${suffix}.php`);
-        if (fs.existsSync(filePath)) {
-          return filePath;
-        }
-      }
-    }
-  } catch {
-    // ignore
-  }
-
-  return null;
-}
+export { resolveClassFile } from "./composer.js";
 
 export function expandSymfonyPath(value: string, projectRoot: string): string {
   const expanded = value

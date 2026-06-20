@@ -78,7 +78,7 @@ npm install
 npm run setup-zed
 ```
 
-This copies the bundled server to `~/.local/share/zed/extensions/work/symfony/symfony-lsp-server.js`. **Required** — Zed runs the WASM from that folder only, not your source tree.
+This copies the bundled server to `~/.local/share/zed/extensions/work/symfony-fire1/symfony-lsp-server.js`. **Required** — Zed runs the WASM from that folder only, not your source tree.
 
 2. In Zed: Command Palette → **zed: extensions** → **Install Dev Extension** → select this directory.
 

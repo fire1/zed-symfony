@@ -22358,6 +22358,142 @@ var require_symfonyCli = __commonJS({
   }
 });
 
+// dist/utils/composer.js
+var require_composer2 = __commonJS({
+  "dist/utils/composer.js"(exports2) {
+    "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    })();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.loadPsr4Mappings = loadPsr4Mappings;
+    exports2.isDependencyPath = isDependencyPath;
+    exports2.fqcnFromFilePath = fqcnFromFilePath;
+    exports2.filePathFromFqcn = filePathFromFqcn;
+    exports2.resolveClassFile = resolveClassFile;
+    exports2.namespaceFromFqcn = namespaceFromFqcn;
+    exports2.basenameFromFqcn = basenameFromFqcn;
+    var fs = __importStar(require("fs"));
+    var path = __importStar(require("path"));
+    var DEPENDENCY_SEGMENTS = /* @__PURE__ */ new Set(["vendor", "node_modules", ".git"]);
+    function loadPsr4Mappings(projectRoot) {
+      const composerPath = path.join(projectRoot, "composer.json");
+      if (!fs.existsSync(composerPath)) {
+        return [];
+      }
+      try {
+        const composer = JSON.parse(fs.readFileSync(composerPath, "utf8"));
+        const psr4 = composer.autoload?.["psr-4"] ?? {};
+        const psr4Dev = composer["autoload-dev"]?.["psr-4"] ?? {};
+        const merged = { ...psr4, ...psr4Dev };
+        return Object.entries(merged).map(([namespace, dir]) => ({
+          namespace: namespace.replace(/\\$/, ""),
+          directory: path.join(projectRoot, String(dir).replace(/\\/g, "/"))
+        }));
+      } catch {
+        return [];
+      }
+    }
+    function isDependencyPath(filePath, projectRoot) {
+      const rel = path.relative(path.resolve(projectRoot), path.resolve(filePath)).replace(/\\/g, "/");
+      if (!rel || rel.startsWith("..")) {
+        return false;
+      }
+      const firstSegment = rel.split("/")[0];
+      return DEPENDENCY_SEGMENTS.has(firstSegment);
+    }
+    function fqcnFromFilePath(absPath, projectRoot) {
+      const resolvedPath = path.resolve(absPath);
+      const resolvedRoot = path.resolve(projectRoot);
+      const relPath = path.relative(resolvedRoot, resolvedPath).replace(/\\/g, "/");
+      if (relPath.startsWith("..") || !relPath.endsWith(".php")) {
+        return null;
+      }
+      for (const mapping of loadPsr4Mappings(resolvedRoot)) {
+        const dirRel = path.relative(resolvedRoot, mapping.directory).replace(/\\/g, "/");
+        const prefix = dirRel === "" ? "" : `${dirRel}/`;
+        if (relPath === dirRel || relPath.startsWith(prefix)) {
+          const subPath = prefix ? relPath.slice(prefix.length) : relPath;
+          const classPath = subPath.replace(/\.php$/, "").replace(/\//g, "\\");
+          return classPath ? `${mapping.namespace}\\${classPath}` : mapping.namespace;
+        }
+      }
+      return null;
+    }
+    function filePathFromFqcn(fqcn, projectRoot) {
+      const normalized = fqcn.replace(/^\\/, "");
+      const mappings = loadPsr4Mappings(projectRoot);
+      for (const mapping of mappings) {
+        const prefix = mapping.namespace;
+        if (normalized === prefix) {
+          return null;
+        }
+        if (!normalized.startsWith(`${prefix}\\`)) {
+          continue;
+        }
+        const suffix = normalized.slice(prefix.length + 1).replace(/\\/g, "/");
+        const filePath = path.join(mapping.directory, `${suffix}.php`);
+        return filePath;
+      }
+      return null;
+    }
+    function resolveClassFile(projectRoot, className) {
+      const fromPsr4 = filePathFromFqcn(className, projectRoot);
+      if (fromPsr4 && fs.existsSync(fromPsr4)) {
+        return fromPsr4;
+      }
+      return null;
+    }
+    function namespaceFromFqcn(fqcn) {
+      const normalized = fqcn.replace(/^\\/, "");
+      const lastSep = normalized.lastIndexOf("\\");
+      if (lastSep <= 0) {
+        return null;
+      }
+      return normalized.slice(0, lastSep);
+    }
+    function basenameFromFqcn(fqcn) {
+      const normalized = fqcn.replace(/^\\/, "");
+      const lastSep = normalized.lastIndexOf("\\");
+      return lastSep >= 0 ? normalized.slice(lastSep + 1) : normalized;
+    }
+  }
+});
+
 // dist/utils/paths.js
 var require_paths = __commonJS({
   "dist/utils/paths.js"(exports2) {
@@ -22400,11 +22536,11 @@ var require_paths = __commonJS({
       };
     })();
     Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.resolveClassFile = void 0;
     exports2.fileUriToPath = fileUriToPath;
     exports2.pathToFileUri = pathToFileUri;
     exports2.findSymfonyProjectRoot = findSymfonyProjectRoot;
     exports2.findSymfonyProjectRootsUnder = findSymfonyProjectRootsUnder;
-    exports2.resolveClassFile = resolveClassFile;
     exports2.expandSymfonyPath = expandSymfonyPath;
     exports2.parseTwigTemplateName = parseTwigTemplateName;
     exports2.isTwigTemplateReference = isTwigTemplateReference;
@@ -22490,42 +22626,10 @@ var require_paths = __commonJS({
       walk(resolvedStart, 1);
       return [...roots];
     }
-    function resolveClassFile(projectRoot, className) {
-      const relative = className.replace(/^\\/, "").replace(/\\/g, "/") + ".php";
-      const candidates = [
-        path.join(projectRoot, "src", relative.replace(/^App\//, "App/")),
-        path.join(projectRoot, "src", relative),
-        path.join(projectRoot, relative)
-      ];
-      for (const candidate of candidates) {
-        if (fs.existsSync(candidate)) {
-          return candidate;
-        }
-      }
-      const composerPath = path.join(projectRoot, "composer.json");
-      if (!fs.existsSync(composerPath)) {
-        return null;
-      }
-      try {
-        const composer = JSON.parse(fs.readFileSync(composerPath, "utf8"));
-        const psr4 = composer.autoload?.["psr-4"] ?? {};
-        const psr4Dev = composer.autoload?.["psr-4-dev"] ?? {};
-        const mappings = { ...psr4, ...psr4Dev };
-        for (const [prefix, dir] of Object.entries(mappings)) {
-          const nsPrefix = prefix.replace(/\\$/, "");
-          if (className.startsWith(nsPrefix)) {
-            const suffix = className.slice(nsPrefix.length).replace(/^\\/, "").replace(/\\/g, "/");
-            const baseDir = path.join(projectRoot, dir);
-            const filePath = path.join(baseDir, `${suffix}.php`);
-            if (fs.existsSync(filePath)) {
-              return filePath;
-            }
-          }
-        }
-      } catch {
-      }
-      return null;
-    }
+    var composer_js_1 = require_composer2();
+    Object.defineProperty(exports2, "resolveClassFile", { enumerable: true, get: function() {
+      return composer_js_1.resolveClassFile;
+    } });
     function expandSymfonyPath(value, projectRoot) {
       const expanded = value.replace(/%kernel\.project_dir%/g, projectRoot).replace(/%kernel\.root_dir%/g, path.join(projectRoot, "src")).trim();
       if (path.isAbsolute(expanded)) {
@@ -33300,6 +33404,632 @@ var require_definition = __commonJS({
   }
 });
 
+// dist/refactor/classAtCursor.js
+var require_classAtCursor = __commonJS({
+  "dist/refactor/classAtCursor.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.offsetAtLine = offsetAtLine;
+    exports2.classAtCursor = classAtCursor;
+    var php_parser_1 = require_src();
+    var composer_js_1 = require_composer2();
+    var engine = new php_parser_1.Engine({
+      parser: {
+        extractDoc: true,
+        suppressErrors: true
+      },
+      ast: {
+        withPositions: true
+      }
+    });
+    function offsetAtLine(content, line, character) {
+      const lines = content.split("\n");
+      let offset = 0;
+      for (let i = 0; i < line && i < lines.length; i++) {
+        offset += lines[i].length + 1;
+      }
+      return offset + character;
+    }
+    function locToRange(loc) {
+      return {
+        startLine: loc.start.line - 1,
+        startCharacter: loc.start.column,
+        endLine: loc.end.line - 1,
+        endCharacter: loc.end.column
+      };
+    }
+    function offsetInLoc(content, loc, offset) {
+      const start = offsetAtLine(content, loc.start.line - 1, loc.start.column);
+      const end = offsetAtLine(content, loc.end.line - 1, loc.end.column);
+      return offset >= start && offset <= end;
+    }
+    function getNamespace(ast) {
+      for (const child of ast?.children ?? []) {
+        if (child?.kind !== "namespace") {
+          continue;
+        }
+        const nameNode = child.name;
+        if (nameNode?.kind === "identifier") {
+          return nameNode.name;
+        }
+        if (typeof nameNode === "string") {
+          return nameNode;
+        }
+      }
+      return null;
+    }
+    function findDeclarationAtOffset(node, content, offset) {
+      if (!node || typeof node !== "object") {
+        return null;
+      }
+      if (node.kind === "class" || node.kind === "interface" || node.kind === "trait") {
+        const nameNode = node.id ?? node.name;
+        const name = nameNode?.name;
+        if (name && nameNode?.loc && offsetInLoc(content, nameNode.loc, offset)) {
+          return { name, range: locToRange(nameNode.loc) };
+        }
+      }
+      for (const key of Object.keys(node)) {
+        const child = node[key];
+        if (Array.isArray(child)) {
+          for (const item of child) {
+            const found = findDeclarationAtOffset(item, content, offset);
+            if (found) {
+              return found;
+            }
+          }
+        } else if (child && typeof child === "object") {
+          const found = findDeclarationAtOffset(child, content, offset);
+          if (found) {
+            return found;
+          }
+        }
+      }
+      return null;
+    }
+    function isEligibleDeclaration(fqcn, filePath, projectRoot) {
+      const mappedFqcn = (0, composer_js_1.fqcnFromFilePath)(filePath, projectRoot);
+      const resolvedPath = (0, composer_js_1.filePathFromFqcn)(fqcn, projectRoot);
+      return Boolean(resolvedPath && mappedFqcn === fqcn);
+    }
+    function classAtCursor(content, filePath, projectRoot, line, character) {
+      if ((0, composer_js_1.isDependencyPath)(filePath, projectRoot)) {
+        return null;
+      }
+      const byteOffset = offsetAtLine(content, line, character);
+      let ast;
+      try {
+        ast = engine.parseCode(content, filePath);
+      } catch {
+        return classAtCursorRegex(content, filePath, projectRoot, line, character);
+      }
+      const namespace = getNamespace(ast);
+      if (!namespace) {
+        return null;
+      }
+      const declaration = findDeclarationAtOffset(ast, content, byteOffset);
+      if (!declaration) {
+        return classAtCursorRegex(content, filePath, projectRoot, line, character);
+      }
+      const fqcn = `${namespace}\\${declaration.name}`;
+      if (!isEligibleDeclaration(fqcn, filePath, projectRoot)) {
+        return null;
+      }
+      return {
+        fqcn,
+        basename: declaration.name,
+        declPath: filePath,
+        range: declaration.range
+      };
+    }
+    function classAtCursorRegex(content, filePath, projectRoot, line, character) {
+      const namespaceMatch = content.match(/^namespace\s+([\w\\]+)\s*;/m);
+      if (!namespaceMatch) {
+        return null;
+      }
+      const namespace = namespaceMatch[1];
+      const currentLine = content.split("\n")[line] ?? "";
+      const pattern = /\b(class|interface|trait)\s+(\w+)/g;
+      let match;
+      while ((match = pattern.exec(currentLine)) !== null) {
+        const name = match[2];
+        const nameStart = match.index + match[0].indexOf(name);
+        const nameEnd = nameStart + name.length;
+        if (character >= nameStart && character <= nameEnd) {
+          const fqcn = `${namespace}\\${name}`;
+          if (!isEligibleDeclaration(fqcn, filePath, projectRoot)) {
+            return null;
+          }
+          return {
+            fqcn,
+            basename: name,
+            declPath: filePath,
+            range: {
+              startLine: line,
+              startCharacter: nameStart,
+              endLine: line,
+              endCharacter: nameEnd
+            }
+          };
+        }
+      }
+      return null;
+    }
+  }
+});
+
+// dist/refactor/classRefactor.js
+var require_classRefactor = __commonJS({
+  "dist/refactor/classRefactor.js"(exports2) {
+    "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    })();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.buildClassRefactorWorkspaceEdit = buildClassRefactorWorkspaceEdit;
+    exports2.validateRenameTarget = validateRenameTarget;
+    exports2.renamedFilePath = renamedFilePath;
+    exports2.movedFilePath = movedFilePath;
+    var fs = __importStar(require("fs"));
+    var path = __importStar(require("path"));
+    var node_12 = require_node3();
+    var composer_js_1 = require_composer2();
+    var paths_js_12 = require_paths();
+    var SEARCH_DIRS = ["src", "lib", "tests", "config", "templates", "public", "bin"];
+    var SCAN_EXTENSIONS = /* @__PURE__ */ new Set([
+      "php",
+      "yaml",
+      "yml",
+      "twig",
+      "json",
+      "js",
+      "md",
+      "sh"
+    ]);
+    function escapeRegex(value) {
+      return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+    function extractUseMap(content) {
+      const uses = /* @__PURE__ */ new Map();
+      for (const match of content.matchAll(/^use\s+([\w\\]+)(?:\s+as\s+(\w+))?\s*;/gm)) {
+        const fqcn = match[1];
+        const alias = match[2] ?? fqcn.split("\\").pop();
+        uses.set(alias, fqcn);
+      }
+      return uses;
+    }
+    function replaceFqcn(content, oldFqcn, newFqcn) {
+      let result = content.split(oldFqcn).join(newFqcn);
+      const oldEscaped = oldFqcn.replace(/\\/g, "\\\\");
+      const newEscaped = newFqcn.replace(/\\/g, "\\\\");
+      result = result.split(oldEscaped).join(newEscaped);
+      return result;
+    }
+    function rewriteDeclarationKind(content, oldBasename, newBasename) {
+      const kinds = ["class", "interface", "trait"];
+      let result = content;
+      for (const kind of kinds) {
+        const pattern = new RegExp(`\\b${escapeRegex(kind)}\\s+${escapeRegex(oldBasename)}\\b`);
+        result = result.replace(pattern, `${kind} ${newBasename}`);
+      }
+      return result;
+    }
+    function rewriteNamespaceDeclaration(content, oldNamespace, newNamespace) {
+      if (!oldNamespace || !newNamespace || oldNamespace === newNamespace) {
+        return content;
+      }
+      return content.replace(new RegExp(`^namespace\\s+${escapeRegex(oldNamespace)}\\s*;`, "m"), `namespace ${newNamespace};`);
+    }
+    function rewritePhpShortReferences(content, oldBasename, newBasename, oldFqcn) {
+      const useMap = extractUseMap(content);
+      const aliasesForOld = [...useMap.entries()].filter(([, fqcn]) => fqcn === oldFqcn).map(([alias]) => alias);
+      const tokens = /* @__PURE__ */ new Set([oldBasename, ...aliasesForOld]);
+      let result = content;
+      for (const token of tokens) {
+        const tokenPattern = new RegExp(`\\b${escapeRegex(token)}\\b`, "g");
+        result = result.replace(tokenPattern, (match, offset) => {
+          const before = result.slice(Math.max(0, offset - 12), offset);
+          if (/function\s$/.test(before)) {
+            return match;
+          }
+          return newBasename;
+        });
+      }
+      return result;
+    }
+    function rewriteFileContent(filePath, request, content) {
+      const oldBasename = (0, composer_js_1.basenameFromFqcn)(request.oldFqcn);
+      const newBasename = (0, composer_js_1.basenameFromFqcn)(request.newFqcn);
+      const ext = path.extname(filePath).slice(1).toLowerCase();
+      let updated = replaceFqcn(content, request.oldFqcn, request.newFqcn);
+      if (ext === "php") {
+        if (path.resolve(filePath) === path.resolve(request.oldDeclPath)) {
+          updated = rewriteDeclarationKind(updated, oldBasename, newBasename);
+          updated = rewriteNamespaceDeclaration(updated, (0, composer_js_1.namespaceFromFqcn)(request.oldFqcn), (0, composer_js_1.namespaceFromFqcn)(request.newFqcn));
+        } else {
+          updated = rewritePhpShortReferences(updated, oldBasename, newBasename, request.oldFqcn);
+        }
+      }
+      return updated === content ? null : updated;
+    }
+    function collectProjectFiles(projectRoot) {
+      const files = [];
+      for (const dirName of SEARCH_DIRS) {
+        const fullDir = path.join(projectRoot, dirName);
+        if (!fs.existsSync(fullDir) || !fs.statSync(fullDir).isDirectory()) {
+          continue;
+        }
+        walkDirectory(fullDir, projectRoot, files);
+      }
+      return files;
+    }
+    function walkDirectory(dir, projectRoot, files) {
+      let entries;
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if ((0, composer_js_1.isDependencyPath)(fullPath, projectRoot)) {
+            continue;
+          }
+          walkDirectory(fullPath, projectRoot, files);
+          continue;
+        }
+        if (!entry.isFile()) {
+          continue;
+        }
+        const ext = path.extname(entry.name).slice(1).toLowerCase();
+        if (!SCAN_EXTENSIONS.has(ext)) {
+          continue;
+        }
+        if ((0, composer_js_1.isDependencyPath)(fullPath, projectRoot)) {
+          continue;
+        }
+        files.push(fullPath);
+      }
+    }
+    function buildClassRefactorWorkspaceEdit(request) {
+      const documentChanges = [];
+      const oldBasename = (0, composer_js_1.basenameFromFqcn)(request.oldFqcn);
+      for (const filePath of collectProjectFiles(request.projectRoot)) {
+        const original = fs.readFileSync(filePath, "utf8");
+        if (!original.includes(oldBasename) && !original.includes(request.oldFqcn)) {
+          continue;
+        }
+        const updated = rewriteFileContent(filePath, request, original);
+        if (!updated) {
+          continue;
+        }
+        documentChanges.push({
+          textDocument: {
+            uri: (0, paths_js_12.pathToFileUri)(filePath),
+            version: null
+          },
+          edits: [node_12.TextEdit.replace({ start: { line: 0, character: 0 }, end: { line: Number.MAX_SAFE_INTEGER, character: 0 } }, updated)]
+        });
+      }
+      if (path.resolve(request.oldDeclPath) !== path.resolve(request.newDeclPath)) {
+        documentChanges.push({
+          kind: "rename",
+          oldUri: (0, paths_js_12.pathToFileUri)(request.oldDeclPath),
+          newUri: (0, paths_js_12.pathToFileUri)(request.newDeclPath)
+        });
+      }
+      return { documentChanges };
+    }
+    function validateRenameTarget(projectRoot, oldFqcn, oldDeclPath, newFqcn, newDeclPath) {
+      const resolvedOld = (0, composer_js_1.fqcnFromFilePath)(oldDeclPath, projectRoot);
+      if (!resolvedOld || resolvedOld !== oldFqcn) {
+        return "Not a PSR-4 namespace class declaration.";
+      }
+      if ((0, composer_js_1.isDependencyPath)(oldDeclPath, projectRoot)) {
+        return "Cannot refactor classes in vendor or dependencies.";
+      }
+      if (path.resolve(oldDeclPath) !== path.resolve(newDeclPath)) {
+        if (fs.existsSync(newDeclPath)) {
+          return "Target file already exists.";
+        }
+      }
+      const newResolved = (0, composer_js_1.fqcnFromFilePath)(newDeclPath, projectRoot);
+      if (newResolved && newResolved !== oldFqcn && fs.existsSync(newDeclPath)) {
+        return "Target file already exists.";
+      }
+      if (!newFqcn.includes("\\")) {
+        return "Target must be a namespaced class.";
+      }
+      return null;
+    }
+    function renamedFilePath(declPath, newBasename) {
+      return path.join(path.dirname(declPath), `${newBasename}.php`);
+    }
+    function movedFilePath(projectRoot, newFqcn) {
+      return (0, composer_js_1.filePathFromFqcn)(newFqcn, projectRoot);
+    }
+  }
+});
+
+// dist/providers/codeActions.js
+var require_codeActions = __commonJS({
+  "dist/providers/codeActions.js"(exports2) {
+    "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+      var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    })();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.MOVE_CLASS_COMMAND = exports2.RENAME_CLASS_COMMAND = void 0;
+    exports2.provideCodeActions = provideCodeActions;
+    exports2.handleExecuteCommand = handleExecuteCommand;
+    var fs = __importStar(require("fs"));
+    var path = __importStar(require("path"));
+    var node_12 = require_node3();
+    var classAtCursor_js_1 = require_classAtCursor();
+    var classRefactor_js_1 = require_classRefactor();
+    var composer_js_1 = require_composer2();
+    var paths_js_12 = require_paths();
+    exports2.RENAME_CLASS_COMMAND = "symfony-lsp.renameClass";
+    exports2.MOVE_CLASS_COMMAND = "symfony-lsp.moveClass";
+    function isBarePhpIdentifier(value) {
+      return /^[A-Za-z_][A-Za-z0-9_]*$/.test(value);
+    }
+    function isQualifiedFqcn(value) {
+      const normalized = value.replace(/^\\/, "").trim();
+      if (!normalized.includes("\\")) {
+        return false;
+      }
+      const segments = normalized.split("\\");
+      return segments.every((segment) => isBarePhpIdentifier(segment));
+    }
+    async function promptForInput(connection2, prompt, value) {
+      try {
+        const result = await connection2.sendRequest("window/showInputBox", { prompt, value });
+        const input = result?.value?.trim();
+        return input ? input : null;
+      } catch {
+        await connection2.window.showErrorMessage("Input prompt is not supported by this editor for Symfony LSP refactor commands.");
+        return null;
+      }
+    }
+    function parseCommandArgs(args) {
+      if (args.length < 6) {
+        return null;
+      }
+      const [uri, line, character, fqcn, declPath, projectRoot] = args;
+      if (typeof uri !== "string" || typeof line !== "number" || typeof character !== "number" || typeof fqcn !== "string" || typeof declPath !== "string" || typeof projectRoot !== "string") {
+        return null;
+      }
+      return { uri, line, character, fqcn, declPath, projectRoot };
+    }
+    function buildCommandArgs(document, position, declaration, projectRoot) {
+      return {
+        uri: document.uri,
+        line: position.line,
+        character: position.character,
+        fqcn: declaration.fqcn,
+        declPath: declaration.declPath,
+        projectRoot
+      };
+    }
+    function provideCodeActions(document, range, projectRoot) {
+      if (!projectRoot) {
+        return [];
+      }
+      const filePath = (0, paths_js_12.fileUriToPath)(document.uri);
+      const position = range.start;
+      const declaration = (0, classAtCursor_js_1.classAtCursor)(document.getText(), filePath, projectRoot, position.line, position.character);
+      if (!declaration) {
+        return [];
+      }
+      const args = buildCommandArgs(document, position, declaration, projectRoot);
+      return [
+        {
+          title: "Rename class...",
+          kind: node_12.CodeActionKind.RefactorRewrite,
+          command: {
+            title: "Rename class",
+            command: exports2.RENAME_CLASS_COMMAND,
+            arguments: [
+              args.uri,
+              args.line,
+              args.character,
+              args.fqcn,
+              args.declPath,
+              args.projectRoot
+            ]
+          }
+        },
+        {
+          title: "Move class to namespace...",
+          kind: node_12.CodeActionKind.RefactorRewrite,
+          command: {
+            title: "Move class to namespace",
+            command: exports2.MOVE_CLASS_COMMAND,
+            arguments: [
+              args.uri,
+              args.line,
+              args.character,
+              args.fqcn,
+              args.declPath,
+              args.projectRoot
+            ]
+          }
+        }
+      ];
+    }
+    async function applyClassRefactor(connection2, projectRoot, oldFqcn, oldDeclPath, newFqcn, newDeclPath) {
+      const validationError = (0, classRefactor_js_1.validateRenameTarget)(projectRoot, oldFqcn, oldDeclPath, newFqcn, newDeclPath);
+      if (validationError) {
+        await connection2.window.showErrorMessage(validationError);
+        return false;
+      }
+      const edit = (0, classRefactor_js_1.buildClassRefactorWorkspaceEdit)({
+        projectRoot,
+        oldFqcn,
+        newFqcn,
+        oldDeclPath,
+        newDeclPath
+      });
+      const result = await connection2.workspace.applyEdit({ edit });
+      if (!result.applied) {
+        await connection2.window.showErrorMessage("Failed to apply class refactor.");
+        return false;
+      }
+      await connection2.window.showInformationMessage(`Refactored ${oldFqcn} \u2192 ${newFqcn}`);
+      return true;
+    }
+    async function handleRenameClass(connection2, args) {
+      const currentBasename = (0, composer_js_1.basenameFromFqcn)(args.fqcn);
+      const input = await promptForInput(connection2, "New class name", currentBasename);
+      if (!input) {
+        return;
+      }
+      if (!isBarePhpIdentifier(input)) {
+        await connection2.window.showErrorMessage("Rename a class to a simple name (e.g. FooService).");
+        return;
+      }
+      if (input === currentBasename) {
+        await connection2.window.showErrorMessage("New class name is the same as the current one.");
+        return;
+      }
+      const namespace = (0, composer_js_1.namespaceFromFqcn)(args.fqcn);
+      if (!namespace) {
+        await connection2.window.showErrorMessage("Not a namespaced class.");
+        return;
+      }
+      const newFqcn = `${namespace}\\${input}`;
+      const newDeclPath = (0, classRefactor_js_1.renamedFilePath)(args.declPath, input);
+      await applyClassRefactor(connection2, args.projectRoot, args.fqcn, args.declPath, newFqcn, newDeclPath);
+    }
+    async function handleMoveClass(connection2, args) {
+      const input = await promptForInput(connection2, "Target FQCN (e.g. App\\Module\\Service\\FooService)", args.fqcn);
+      if (!input) {
+        return;
+      }
+      const newFqcn = input.replace(/^\\/, "").trim();
+      if (!isQualifiedFqcn(newFqcn)) {
+        await connection2.window.showErrorMessage("Enter a fully qualified class name (e.g. App\\Module\\Service\\FooService).");
+        return;
+      }
+      if (newFqcn === args.fqcn) {
+        await connection2.window.showErrorMessage("Target class is the same as the current one.");
+        return;
+      }
+      const newDeclPath = (0, classRefactor_js_1.movedFilePath)(args.projectRoot, newFqcn);
+      if (!newDeclPath) {
+        await connection2.window.showErrorMessage("Target FQCN does not map to a PSR-4 path in composer.json.");
+        return;
+      }
+      if (fs.existsSync(newDeclPath)) {
+        await connection2.window.showErrorMessage("Target file already exists.");
+        return;
+      }
+      await applyClassRefactor(connection2, args.projectRoot, args.fqcn, args.declPath, newFqcn, newDeclPath);
+    }
+    async function handleExecuteCommand(connection2, params) {
+      const parsed = parseCommandArgs(params.arguments ?? []);
+      if (!parsed) {
+        await connection2.window.showErrorMessage("Invalid refactor command arguments.");
+        return;
+      }
+      if (!fs.existsSync(parsed.declPath)) {
+        await connection2.window.showErrorMessage("Class declaration file not found.");
+        return;
+      }
+      const projectRoot = (0, paths_js_12.findSymfonyProjectRoot)(parsed.declPath);
+      if (!projectRoot || projectRoot !== path.resolve(parsed.projectRoot)) {
+        await connection2.window.showErrorMessage("Symfony project root not found.");
+        return;
+      }
+      const content = fs.readFileSync(parsed.declPath, "utf8");
+      const declaration = (0, classAtCursor_js_1.classAtCursor)(content, parsed.declPath, projectRoot, parsed.line, parsed.character);
+      if (!declaration || declaration.fqcn !== parsed.fqcn) {
+        await connection2.window.showErrorMessage("Refactor is only available on PSR-4 namespace class declarations.");
+        return;
+      }
+      if (params.command === exports2.RENAME_CLASS_COMMAND) {
+        await handleRenameClass(connection2, parsed);
+        return;
+      }
+      if (params.command === exports2.MOVE_CLASS_COMMAND) {
+        await handleMoveClass(connection2, parsed);
+        return;
+      }
+      await connection2.window.showErrorMessage(`Unknown command: ${params.command}`);
+    }
+  }
+});
+
 // dist/server.js
 Object.defineProperty(exports, "__esModule", { value: true });
 var node_1 = require_node3();
@@ -33309,6 +34039,7 @@ var documentLinks_js_1 = require_documentLinks();
 var completion_js_1 = require_completion();
 var hover_js_1 = require_hover();
 var definition_js_1 = require_definition();
+var codeActions_js_1 = require_codeActions();
 var paths_js_1 = require_paths();
 var phpactorConfig_js_1 = require_phpactorConfig();
 var connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
@@ -33350,7 +34081,13 @@ connection.onInitialize((params) => {
         triggerCharacters: ["'", '"', ":", "\\"]
       },
       hoverProvider: true,
-      definitionProvider: true
+      definitionProvider: true,
+      codeActionProvider: {
+        resolveProvider: false
+      },
+      executeCommandProvider: {
+        commands: [codeActions_js_1.RENAME_CLASS_COMMAND, codeActions_js_1.MOVE_CLASS_COMMAND]
+      }
     }
   };
 });
@@ -33417,6 +34154,18 @@ connection.onDefinition(async (params) => {
     return null;
   }
   return (0, definition_js_1.provideDefinition)(document, index, params.position.line, params.position.character);
+});
+connection.onCodeAction(async (params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return [];
+  }
+  const filePath = (0, paths_js_1.fileUriToPath)(document.uri);
+  const projectRoot = (0, paths_js_1.findSymfonyProjectRoot)(filePath);
+  return (0, codeActions_js_1.provideCodeActions)(document, params.range, projectRoot);
+});
+connection.onExecuteCommand(async (params) => {
+  await (0, codeActions_js_1.handleExecuteCommand)(connection, params);
 });
 documents.listen(connection);
 connection.listen();
